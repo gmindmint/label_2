@@ -74,7 +74,7 @@
         const { PDFDocument, rgb, StandardFonts } = PDFLib; // pdf-lib setup
 
         // --- Google Apps Script URL ---
-        // !!! IMPORTANT: Replace this placeholder with your actual deployed Apps Script Web App URL !!!
+        // This is your specific URL
         const G_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyrpiOkADt6xKE0ltX3Qxo2f3YzFhv84U8R3WcEt9F4bqtk5BmyBQHkkPXAyVd0cJm6Q/exec';
 
         // --- Function to display errors ---
@@ -95,8 +95,8 @@
             const datalist = document.getElementById('promo-options');
             datalist.innerHTML = '<option value="Loading..."></option>'; // Show loading state
 
-            if (!G_SCRIPT_URL || G_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbzyrpiOkADt6xKE0ltX3Qxo2f3YzFhv84U8R3WcEt9F4bqtk5BmyBQHkkPXAyVd0cJm6Q/exec') {
-                displayError("Google Apps Script URL is not configured in index.html.");
+            if (!G_SCRIPT_URL || G_SCRIPT_URL === 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') { // Safety check
+                displayError("Google Apps Script URL is not configured correctly in index.html.");
                 datalist.innerHTML = '<option value="Configuration Error"></option>';
                 return;
             }

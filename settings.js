@@ -6,7 +6,7 @@ const errorDisplay = document.getElementById('error-display');
 const statusDisplay = document.getElementById('status-display');
 
 // --- Google Apps Script URL ---
-// !!! IMPORTANT: Replace this placeholder with your actual deployed Apps Script Web App URL !!!
+// This is your specific URL
 const G_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyrpiOkADt6xKE0ltX3Qxo2f3YzFhv84U8R3WcEt9F4bqtk5BmyBQHkkPXAyVd0cJm6Q/exec';
 
 // --- Utility functions for feedback ---
@@ -66,8 +66,8 @@ async function loadOptions() {
     clearFeedback();
     optionsList.innerHTML = '<li>Loading...</li>'; // Show loading indicator
 
-    if (!G_SCRIPT_URL || G_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbzyrpiOkADt6xKE0ltX3Qxo2f3YzFhv84U8R3WcEt9F4bqtk5BmyBQHkkPXAyVd0cJm6Q/exec') {
-        showError("Google Apps Script URL is not configured in settings.js.");
+    if (!G_SCRIPT_URL || G_SCRIPT_URL === 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') { // Safety check
+        showError("Google Apps Script URL is not configured correctly in settings.js.");
         optionsList.innerHTML = '<li>Configuration Error</li>';
         return;
     }
@@ -112,7 +112,7 @@ async function handleAddTerm() {
         return;
     }
 
-    if (!G_SCRIPT_URL || G_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbzyrpiOkADt6xKE0ltX3Qxo2f3YzFhv84U8R3WcEt9F4bqtk5BmyBQHkkPXAyVd0cJm6Q/exec') {
+    if (!G_SCRIPT_URL || G_SCRIPT_URL === 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') { // Safety check
         showError("Google Apps Script URL is not configured.");
         return;
     }
@@ -184,7 +184,7 @@ async function handleDeleteTerm(event) {
         return;
     }
 
-    if (!G_SCRIPT_URL || G_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbzyrpiOkADt6xKE0ltX3Qxo2f3YzFhv84U8R3WcEt9F4bqtk5BmyBQHkkPXAyVd0cJm6Q/exec') {
+    if (!G_SCRIPT_URL || G_SCRIPT_URL === 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') { // Safety check
         showError("Google Apps Script URL is not configured.");
         return;
     }

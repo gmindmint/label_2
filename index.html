@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Label Generator</title>
+    <!-- pdf-lib -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .form-group { margin-bottom: 15px; }
+        .promotional-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+        textarea { height: 100px; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; margin-top: 5px; }
+        .generate-btn { background-color: #4CAF50; color: white; }
+        .sample-btn { background-color: #2196F3; color: white; }
+        .clear-btn { background-color: #f44336; color: white; }
+        button:hover { opacity: 0.9; }
+        .settings-link { display: block; margin-bottom: 20px; text-align: right; }
+        .error-message { color: red; margin-bottom: 10px; font-weight: bold; border: 1px solid red; padding: 5px; display: none; /* Hidden by default */ }
+    </style>
+</head>
+<body>
+    <h1>Food Label Generator</h1>
+
+    <a href="settings.html" class="settings-link">Manage Promo Options</a>
+    <div id="error-display" class="error-message"></div>
+
+    <!-- Datalist will be populated by fetch -->
+    <datalist id="promo-options">
+        <!-- Options will be loaded here dynamically -->
+    </datalist>
+
+    <div class="form-group">
+        <label for="title">Title:</label>
+        <input type="text" id="title" required>
+    </div>
+
+    <div class="form-group">
+        <label>Promotional Terms (up to 6):</label>
+        <div class="promotional-terms">
+            <div class="promotional-term"><input type="text" class="promo-term" list="promo-options" placeholder="Select or type term"></div>
+            <div class="promotional-term"><input type="text" class="promo-term" list="promo-options" placeholder="Select or type term"></div>
+            <div class="promotional-term"><input type="text" class="promo-term" list="promo-options" placeholder="Select or type term"></div>
+            <div class="promotional-term"><input type="text" class="promo-term" list="promo-options" placeholder="Select or type term"></div>
+            <div class="promotional-term"><input type="text" class="promo-term" list="promo-options" placeholder="Select or type term"></div>
+            <div class="promotional-term"><input type="text" class="promo-term" list="promo-options" placeholder="Select or type term"></div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="ingredients">Ingredients:</label>
+        <textarea id="ingredients" required></textarea>
+    </div>
+
+    <div class="form-group">
+        <label for="contains">Contains:</label>
+        <textarea id="contains" required></textarea>
+    </div>
+
+    <div class="button-group">
+        <button onclick="generatePDF()" class="generate-btn">Generate PDF</button>
+        <button onclick="fillSampleData()" class="sample-btn">Fill Sample Data</button>
+        <button onclick="clearAllFields()" class="clear-btn">Clear All</button>
+    </div>
+
+    <script>
+        const { PDFDocument, rgb, StandardFonts } = PDFLib; // pdf-lib setup
+
+        // --- Google Apps Script URL ---
+        // !!! IMPORTANT: Replace this placeholder with your actual deployed Apps Script Web App URL !!!
+        const G_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyrpiOkADt6xKE0ltX3Qxo2f3YzFhv84U8R3WcEt9F4bqtk5BmyBQHkkPXAyVd0cJm6Q/exec';
+
+        // --- Function to display errors ---
+        function displayError(message) {
+            const errorDiv = document.getElementById('error-display');
+            errorDiv.textContent = `Error: ${message}`;
+            errorDiv.style.display = 'block';
+        }
+        function clearError() {
+             const errorDiv = document.getElementById('error-display');
+            errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
+        }
+
+        // --- Function to fetch and populate options using Google Apps Script ---
+        async function loadPromoOptions() {
+            clearError();
+            const datalist = document.getElementById('promo-options');
+            datalist.innerHTML = '<option value="Loading..."></option>'; // Show loading state
+
+            if (!G_SCRIPT_URL || G_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbzyrpiOkADt6xKE0ltX3Qxo2f3YzFhv84U8R3WcEt9F4bqtk5BmyBQHkkPXAyVd0cJm6Q/exec') {
+                displayError("Google Apps Script URL is not configured in index.html.");
+                datalist.innerHTML = '<option value="Configuration Error"></option>';
+                return;
+            }
+
+            try {
+                // Simple GET request to the Apps Script URL
+                const response = await fetch(G_SCRIPT_URL);
+
+                if (!response.ok) {
+                     // Try to get error from JSON response, fallback to status text
+                     let errorMsg = `Failed to load terms (Status: ${response.status} ${response.statusText})`;
+                     try {
+                         const errorData = await response.json();
+                         // Check if Apps Script returned an error object structure
+                         errorMsg = errorData.error || errorData.message || errorMsg;
+                     } catch(e){ /* Ignore if response body is not JSON */ }
+                     throw new Error(errorMsg);
+                }
+
+                const options = await response.json(); // Expecting an array of strings directly from successful doGet
+
+                // Handle potential error structure returned even with 200 OK from Apps Script
+                 if (typeof options === 'object' && options !== null && options.error) {
+                     throw new Error(options.error);
+                 }
+                 // Ensure it's an array
+                 if (!Array.isArray(options)) {
+                     console.error("Received non-array data:", options);
+                     throw new Error("Invalid data format received from backend.");
+                 }
+
+
+                datalist.innerHTML = ''; // Clear loading/previous options
+                if (options.length === 0) {
+                     datalist.innerHTML = '<option value="No terms defined yet"></option>';
+                } else {
+                    options.forEach(optionText => {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = optionText;
+                        datalist.appendChild(optionElement);
+                    });
+                }
+                console.log("Promo options loaded via Google Apps Script:", options);
+
+            } catch (error) {
+                console.error("Failed to load promo options:", error);
+                displayError(`Could not load promotional terms. Check settings or console. (${error.message})`);
+                datalist.innerHTML = '<option value="Error loading terms"></option>'; // Show error in datalist
+            }
+        }
+
+        // --- Load options when the page is ready ---
+        document.addEventListener('DOMContentLoaded', loadPromoOptions);
+
+        // --- Existing Form and PDF Logic ---
+        function fillSampleData() {
+            document.getElementById('title').value = 'Sample Keto Bread';
+            const promoTerms = document.getElementsByClassName('promo-term');
+            // Sample data might need adjustment based on dynamically loaded options
+            const sampleTerms = ['Sugar Free', 'Grain Free', 'Low-Carb']; // Use fewer or different defaults
+             for (let i = 0; i < promoTerms.length; i++) {
+                promoTerms[i].value = sampleTerms[i] || '';
+            }
+            document.getElementById('ingredients').value = 'Almond flour, flaxseed meal, eggs';
+            document.getElementById('contains').value = 'Almond, Egg';
+        }
+
+        function toTitleCase(string) {
+            if (!string) return "";
+            return string.toLowerCase().split(' ').map(word => {
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            }).join(' ');
+        }
+
+        function clearAllFields() {
+            document.getElementById('title').value = '';
+            Array.from(document.getElementsByClassName('promo-term')).forEach(term => term.value = '');
+            document.getElementById('ingredients').value = '';
+            document.getElementById('contains').value = '';
+        }
+
+        function wrapText(text, font, fontSize, maxWidth) {
+            const words = text.replace(/,\s*/g, ', ').split(' '); // Standardize comma spacing before split
+            const lines = [];
+            let currentLine = words[0] || ''; // Handle empty text case
+
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                // Ensure word itself isn't too long (optional, but good practice)
+                const wordWidth = font.widthOfTextAtSize(word, fontSize);
+                if (wordWidth > maxWidth && maxWidth > 0) { // Add check for maxWidth > 0
+                    // Handle very long words (simple split here, could be improved)
+                    if (currentLine) lines.push(currentLine); // Push previous line first
+                    let splitIndex = Math.floor(maxWidth/wordWidth * word.length);
+                    splitIndex = Math.max(1, splitIndex -1); // Ensure splitIndex is reasonable
+                    lines.push(word.substring(0, splitIndex) + '-'); // Approximate split
+                    currentLine = word.substring(splitIndex);
+                    continue; // Skip rest of loop for this word part
+                }
+
+                const testLine = currentLine ? currentLine + ' ' + word : word; // Handle starting line
+                const width = font.widthOfTextAtSize(testLine, fontSize);
+
+                if (width < maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    // If currentLine is not empty, push it. Otherwise, the word itself is too long (handled above or edge case)
+                    if (currentLine) {
+                        lines.push(currentLine);
+                    }
+                    currentLine = word;
+                }
+            }
+            if (currentLine) { // Add the last line
+                 lines.push(currentLine);
+            }
+            return lines;
+        }
+
+        async function generatePDF() {
+            // Create a new PDFDocument
+            const pdfDoc = await PDFDocument.create();
+            const page = pdfDoc.addPage([216, 144]); // 3"x2" at 72 DPI
+            const { width, height } = page.getSize();
+            const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+            const margin = 15;
+            const usableWidth = width - 2 * margin;
+
+            // Get form values
+            const title = document.getElementById('title').value;
+            const terms = Array.from(document.getElementsByClassName('promo-term'))
+                .map(input => input.value.trim())
+                .filter(term => term !== ''); // Filter out empty terms
+            const ingredients = document.getElementById('ingredients').value;
+            const contains = document.getElementById('contains').value;
+
+            let currentY = height - margin - 5; // Start drawing from top margin
+
+            // Add Title
+            page.setFont(helveticaBoldFont);
+            const titleFontSize = 12;
+            page.setFontSize(titleFontSize);
+            const titleWidth = helveticaBoldFont.widthOfTextAtSize(title, titleFontSize);
+            page.drawText(title, { x: Math.max(margin, (width - titleWidth) / 2), y: currentY, color: rgb(0, 0, 0), maxWidth: usableWidth }); // Center, ensure within margins
+            currentY -= titleFontSize + 5; // Move Y down
+
+            // Add Dividing Line
+            page.drawLine({ start: { x: margin, y: currentY }, end: { x: width - margin, y: currentY }, thickness: 1, color: rgb(0, 0, 0) });
+            currentY -= 10; // Space after line
+
+            // Add Promotional Terms
+            if (terms.length > 0) {
+                page.setFont(helveticaFont); // Use regular font for terms
+                const termFontSize = 9;
+                page.setFontSize(termFontSize);
+                const termLineHeight = termFontSize + 3;
+                const termsPerLine = 3;
+                const termColumnWidth = usableWidth / termsPerLine;
+
+                terms.slice(0, 6).forEach((term, index) => { // Ensure max 6 terms are shown
+                    if (currentY - termLineHeight < margin) return; // Check vertical space
+
+                    const lineIndex = Math.floor(index / termsPerLine);
+                    const columnIndex = index % termsPerLine;
+
+                    const termX = margin + (columnIndex * termColumnWidth);
+                    const termY = currentY - (lineIndex * termLineHeight);
+
+                    page.drawText('* ' + toTitleCase(term), { x: termX, y: termY, color: rgb(0, 0, 0), maxWidth: termColumnWidth - 5 }); // Add maxWidth
+                });
+
+                // Adjust Y based on how many lines of terms were drawn
+                const termLinesDrawn = Math.ceil(Math.min(terms.length, 6) / termsPerLine);
+                currentY -= (termLinesDrawn * termLineHeight) + 5; // Space after terms
+            } else {
+                 currentY -= 5; // Add a little space even if no terms
+            }
+
+
+            // Add Ingredients
+            const contentFontSize = 8;
+            const contentLineHeight = contentFontSize + 2;
+            page.setFontSize(contentFontSize);
+
+             if (currentY - contentLineHeight < margin) { /* Not enough space */ }
+             else {
+                page.setFont(helveticaBoldFont);
+                page.drawText('Ingredients:', { x: margin, y: currentY, color: rgb(0, 0, 0) });
+                currentY -= contentLineHeight;
+
+                page.setFont(helveticaFont);
+                const wrappedIngredients = wrapText(ingredients, helveticaFont, contentFontSize, usableWidth);
+                wrappedIngredients.forEach((line) => {
+                    if (currentY - contentLineHeight < margin) return; // Check vertical space per line
+                    page.drawText(line, { x: margin, y: currentY, color: rgb(0, 0, 0) });
+                    currentY -= contentLineHeight;
+                });
+                currentY -= 5; // Extra space before "Contains"
+             }
+
+
+            // Add Contains Section
+             if (currentY - contentLineHeight >= margin && contains.trim() !== '') {
+                page.setFont(helveticaBoldFont);
+                const containsLabel = 'Contains:';
+                const containsLabelWidth = helveticaBoldFont.widthOfTextAtSize(containsLabel, contentFontSize);
+                page.drawText(containsLabel, { x: margin, y: currentY, color: rgb(0, 0, 0) });
+
+                page.setFont(helveticaFont);
+                const containsX = margin + containsLabelWidth + 5;
+                const containsMaxWidth = width - containsX - margin; // Calculate remaining width
+                const containsWrapped = wrapText(contains, helveticaFont, contentFontSize, containsMaxWidth);
+                 containsWrapped.forEach((line, index) => {
+                     if (currentY - contentLineHeight < margin) return; // Check again for multi-line contains
+                     page.drawText(line, { x: containsX, y: currentY, color: rgb(0, 0, 0) });
+                     if (index < containsWrapped.length -1) { // Only move Y down if there are more lines
+                        currentY -= contentLineHeight;
+                     }
+                 });
+            } else if (contains.trim() !== '') {
+                 console.warn("Not enough space to draw 'Contains' section.");
+            }
+
+            // --- Save the PDF ---
+            const pdfBytes = await pdfDoc.save();
+
+            // --- Download the PDF ---
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'food_label';
+            a.download = safeTitle + '.pdf';
+            document.body.appendChild(a); // Append link to body for firefox compatibility
+            a.click();
+            document.body.removeChild(a); // Clean up link
+            URL.revokeObjectURL(url); // Release object URL
+        }
+
+    </script>
+</body>
+</html>

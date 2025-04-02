@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Promo Options</title>
+    <style>
+        /* ... (Keep your existing styles) ... */
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        input[type="text"] { width: calc(100% - 90px); padding: 8px; margin-right: 10px; box-sizing: border-box;}
+        button { padding: 8px 15px; cursor: pointer; vertical-align: middle; } /* Align button nicely */
+        ul { list-style: none; padding: 0; }
+        li { border: 1px solid #ccc; padding: 10px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .delete-btn { background-color: #f44336; color: white; border: none; border-radius: 3px; margin-left: 10px; /* Add space */ }
+        .home-link { display: block; margin-top: 20px; }
+        .error-message { color: red; margin-bottom: 10px; font-weight: bold; }
+        .status-message { color: green; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Manage Promotional Term Options</h1>
+
+    <div id="error-display" class="error-message" style="display: none;"></div>
+    <div id="status-display" class="status-message" style="display: none;"></div>
+
+    <div class="form-group">
+        <input type="text" id="new-term-input" placeholder="Enter new term (e.g., Vegan)">
+        <button id="add-term-btn">Add Term</button>
+    </div>
+
+    <h2>Current Options:</h2>
+    <ul id="options-list">
+        <li>Loading...</li>
+    </ul>
+
+    <a href="/" class="home-link">« Back to Food Label Generator</a>
+
+    <!-- Load the settings logic script -->
+    <script src="settings.js"></script>
+
+</body>
+</html>
